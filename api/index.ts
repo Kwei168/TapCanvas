@@ -1,10 +1,13 @@
-// TapCanvas API — Vercel Serverless entry (Node runtime, catch-all).
+// TapCanvas API — Vercel Serverless entry (Node runtime).
 // Wraps the standalone Hono app (createTapCanvasApp) with the worker env
 // (createNodeWorkerEnv, which requires DATABASE_URL) as a Vercel function.
 //
 // NOTE: This runs as a serverless function, NOT a long-lived server.
 // Background BullMQ workers are NOT started here (Vercel has no long-running
 // processes). Core REST/HTTP API works; some async job features may be limited.
+//
+// Routing: Vercel routes forward "/<path>" -> "/api?_path=<path>" so the
+// original request path is preserved here via the _path query param.
 
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { createTapCanvasApp } from "../apps/hono-api/src/app";
@@ -43,8 +46,6 @@ function readBody(req: IncomingMessage): Promise<Buffer> {
 
 export const config = {
 	api: {
-		// Keep node_modules external — Prisma/native deps must resolve from the
-		// installed dependencies at runtime, not be bundled.
 		external: true,
 		bodyParser: false,
 	},
@@ -55,13 +56,13 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
 		const { app, env } = await bootstrap();
 
 		const method = (req.method || "GET").toUpperCase();
-		let urlPath = req.url || "/";
-		// Vercel rewrite sends /foo -> /api/foo; strip the /api prefix.
-		if (urlPath.startsWith("/api")) {
-			urlPath = urlPath.slice(4) || "/";
-		}
 		const host = (req.headers.host as string) || "localhost";
 		const proto = (req.headers["x-forwarded-proto"] as string) || "https";
+
+		// Original path is forwarded via _path query param by vercel.json routes.
+		const fullUrl = new URL(req.url || "/", `${proto}://${host}`);
+		let urlPath = fullUrl.searchParams.get("_path") || fullUrl.pathname || "/";
+		if (!urlPath.startsWith("/")) urlPath = "/" + urlPath;
 		const url = `${proto}://${host}${urlPath}`;
 
 		const headers = new Headers();
