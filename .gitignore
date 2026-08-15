@@ -49,3 +49,5 @@ helloagents
 project-data
 
 cert
+.vercel
+.env*

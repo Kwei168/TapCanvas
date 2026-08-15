@@ -1,4 +1,4 @@
-// TapCanvas API — Vercel Serverless entry (Node runtime).
+// TapCanvas API — Vercel Serverless entry (Node runtime, catch-all).
 // Wraps the standalone Hono app (createTapCanvasApp) with the worker env
 // (createNodeWorkerEnv, which requires DATABASE_URL) as a Vercel function.
 //

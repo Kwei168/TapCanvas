@@ -62,9 +62,14 @@ type ImageViewControlsModule = {
 };
 
 function requireSharedSchemaModule<TModule>(moduleRelativePath: string): TModule {
+	const cwd = process.cwd();
 	const candidatePaths = [
-		path.resolve(process.cwd(), "../../packages/schemas", moduleRelativePath),
-		path.resolve(process.cwd(), "../packages/schemas", moduleRelativePath),
+		path.resolve(cwd, "../../packages/schemas", moduleRelativePath),
+		path.resolve(cwd, "../packages/schemas", moduleRelativePath),
+		// Vercel serverless: cwd is the repo root (/var/task), so packages live at ./packages
+		path.resolve(cwd, "packages/schemas", moduleRelativePath),
+		// Robust form: from cwd upward through apps/hono-api to repo root
+		path.resolve(cwd, "apps/hono-api/../../packages/schemas", moduleRelativePath),
 	];
 	const matchedPath = candidatePaths.find((candidatePath) => fs.existsSync(candidatePath));
 	if (!matchedPath) {
